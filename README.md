@@ -4,6 +4,12 @@
 
 # Trulioo KYC Documents iOS Guide
 
+## Audience And Scope
+
+Use this guide when integrating the hosted Trulioo KYC Documents flow into an iOS app.
+
+This guide covers the public Swift package, initialization, hosted UI launch, callback handling, transaction-owned configuration, and support evidence. It does not cover direct camera rendering. Use the Capture iOS guide for host-owned camera composition.
+
 ## Quick Summary
 
 A standard iOS Docs integration looks like this:
@@ -15,7 +21,7 @@ A standard iOS Docs integration looks like this:
 5. handle completion and error callbacks from the hosted flow
 6. call `reset()` when the host app is done with the transaction or wants to start over
 
-## Package And Compatibility
+## Package Or Artifact Identity
 
 - GitHub repository: `https://github.com/Trulioo/kyc-documents`
 - package name: `TruliooKYCDocuments`
@@ -75,7 +81,9 @@ Import the module you use:
 import TruliooKYCDocuments
 ```
 
-## Quick Start With SwiftUI
+## Quick-Start Example
+
+### SwiftUI
 
 ```swift
 import SwiftUI
@@ -141,7 +149,7 @@ struct HostedDocsView: View {
 }
 ```
 
-## Quick Start With UIKit
+### UIKit
 
 ```swift
 import TruliooKYCDocuments
@@ -180,7 +188,7 @@ final class DocsHostViewController: UIViewController {
 }
 ```
 
-## Public Entry Points And When To Use Them
+## Public Entrypoints And When To Use Them
 
 Main entry points:
 
@@ -228,6 +236,37 @@ The standard hosted-flow sequence is:
 
 The host application does not manage camera rendering directly in the Docs SDK. The hosted flow owns that UI internally.
 
+## Device Send Flow And Debug Wait Flow
+
+The Device Intelligence send and debug wait paths do not apply to the hosted Docs SDK. The hosted flow owns capture, submission, and completion for the active Docs transaction. The host application handles the terminal callback result.
+
+## Caller-Owned Versus SDK-Owned Data
+
+The host application owns:
+
+- the shortcode
+- SwiftUI or UIKit presentation state around the hosted flow
+- completion, error, retry, and navigation behavior
+- deciding when to call `reset()`
+
+The SDK owns:
+
+- authorization of the active Docs transaction
+- hosted document and selfie capture UI
+- transaction-scoped selection and capture rules
+- hosted-flow completion and structured error callbacks
+
+## Polling Defaults
+
+The public iOS Docs contract does not require host-side polling configuration.
+
+Important defaults:
+
+- `initialize(...)` must return `.authorized(transactionId:)` before launch
+- the hosted flow owns document and selfie capture sequencing
+- transaction configuration controls locale, branding, capture requirements, and desktop-to-mobile behavior
+- `reset()` clears local SDK state and should be called before starting a new transaction
+
 ## Result Handling
 
 Use `TruliooCallbacks` to react to the launched flow:
@@ -273,6 +312,12 @@ These settings come from the transaction configuration associated with the short
 - selection and capture rules
 - desktop-to-mobile enablement
 
+## Environment And Shortcode Rules
+
+- always initialize with a shortcode created for the active Docs transaction
+- do not reuse a stale shortcode after `reset()`
+- shortcode environment is selected by the Trulioo customer handoff flow
+
 ## Common Mistakes
 
 - calling `launch(...)` before `initialize(...)`
@@ -302,3 +347,14 @@ When escalating an iOS Docs issue, collect:
 - whether the flow was pure mobile or desktop-to-mobile
 - whether the host used SwiftUI or UIKit launch
 - the final `TruliooResult` or callback payload
+
+## Support Handoff Checklist
+
+When handing an issue to Trulioo support, include:
+
+- the package version and release channel
+- the shortcode environment, without sharing secrets in public tickets
+- device model, iOS version, and host presentation mode
+- whether initialization reached `.authorized(transactionId:)`
+- final callback result and transaction id when available
+- whether `reset()` was called before retrying the transaction
