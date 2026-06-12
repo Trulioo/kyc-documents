@@ -21,7 +21,7 @@ let package = Package(
         .binaryTarget(
             name: "TruliooKYCDocuments",
             url: "https://github.com/Trulioo/kyc-documents/releases/download/3.1.0/TruliooKYCDocuments.xcframework.zip",
-            checksum: "1511aa8cf83d2bb987512b11631c93b4552c50a5d36185aa884d6ad0aaf6b88c"
+            checksum: "4b3cac5b418e121296585343ab7bddcaad7460fb86fb2e80de3277bf9264185f"
         ),
         .target(
             name: "TruliooKYCDocumentsDependencies",
