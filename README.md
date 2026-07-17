@@ -8,11 +8,23 @@
 
 Use this guide when integrating the hosted Trulioo KYC Documents flow into an iOS app.
 
-This guide covers the public Swift package, initialization, hosted UI launch, callback handling, transaction-owned configuration, and support evidence. It does not cover direct camera rendering. Use the Capture iOS guide for host-owned camera composition.
+This guide covers the public Swift package, initialization, hosted UI launch, callback handling, transaction-owned configuration, and support evidence. For host-owned camera composition, use the Capture iOS guide.
+
+If you are already using the legacy DocV iOS 2.x SDK, read [KYC Documents iOS 3.0 Migration Guide](./trulioo-kyc-documents-ios-migration-3.0.md) before applying the current integration steps in this document.
 
 ## Quick Summary
 
-A standard iOS Docs integration looks like this:
+The Trulioo KYC Documents iOS SDK provides a hosted document verification flow for iOS applications.
+
+Customer applications can expect the SDK to:
+
+- initialize a shortcode-backed document verification transaction
+- launch hosted document and selfie capture screens through SwiftUI or UIKit
+- apply transaction configuration resolved for the active shortcode
+- handle capture, image verification, acceptance, and submission inside the hosted flow
+- return completion and handled-error callbacks for host routing and support
+
+A standard iOS KYC Documents integration looks like this:
 
 1. add the `TruliooKYCDocuments` Swift package
 2. create a `Trulioo` instance
@@ -28,13 +40,13 @@ A standard iOS Docs integration looks like this:
 - Swift package product: `TruliooKYCDocuments`
 - minimum iOS version: `15.0`
 
-The published package includes the hosted KYC Docs UI flow for iPhone and resolves its `Trulioo` and `TruliooKYCDocumentsCapture` dependencies through the package release metadata.
+The published package includes the hosted KYC Documents UI flow for iPhone and resolves its `Trulioo` and `TruliooKYCDocumentsCapture` dependencies through the package release metadata.
 
 ## Platform Requirements And Dependencies
 
 Host applications must:
 
-- provide a valid Docs shortcode created by the Trulioo customer handoff flow
+- provide a valid KYC Documents shortcode created by the Trulioo customer handoff flow through the [Customer API 3.0 handoff operation](https://docs.verification.trulioo.com/api/customer/3.0/index.html#tag/Transaction/operation/postHandoff)
 - initialize the SDK before launching the hosted UI
 - decide whether to embed the hosted flow through SwiftUI or UIKit
 - handle completion and structured error callbacks
@@ -81,9 +93,13 @@ Import the module you use:
 import TruliooKYCDocuments
 ```
 
+If your existing integration still uses CocoaPods `TruliooDocV`, `TruliooDelegate`, or `TruliooWorkflow`, use [KYC Documents iOS 3.0 Migration Guide](./trulioo-kyc-documents-ios-migration-3.0.md) to update the distribution and lifecycle contract first.
+
 ## Quick-Start Example
 
 ### SwiftUI
+
+Initialize first, then launch the hosted SwiftUI view after the transaction is authorized:
 
 ```swift
 import SwiftUI
@@ -91,56 +107,32 @@ import TruliooKYCDocuments
 
 struct HostedDocsView: View {
     @State private var trulioo = Trulioo()
-    @State private var isLaunching = false
-    @State private var transactionId: String?
-    @State private var errorMessage: String?
+    @State private var isAuthorized = false
 
     let shortcode: String
 
     var body: some View {
         Group {
-            if isLaunching {
+            if isAuthorized {
                 trulioo.launch(
                     callbacks: TruliooCallbacks(
-                        onComplete: { value in
-                            transactionId = value
-                            isLaunching = false
+                        onComplete: { _ in
+                            isAuthorized = false
                             trulioo.reset()
                         },
-                        onError: { result in
-                            if case let .error(message, _, _, _) = result {
-                                errorMessage = message
-                            } else {
-                                errorMessage = String(describing: result)
-                            }
-                            isLaunching = false
+                        onError: { _ in
+                            isAuthorized = false
                             trulioo.reset()
                         }
                     )
                 )
                 .ignoresSafeArea()
             } else {
-                VStack(spacing: 16) {
-                    Button("Start verification") {
-                        trulioo.initialize(shortcode: shortcode) { result in
-                            switch result {
-                            case .authorized(let transactionId):
-                                self.transactionId = transactionId
-                                self.isLaunching = true
-                            case .error(let message, _, _, _):
-                                self.errorMessage = message
-                            case .complete:
-                                self.errorMessage = "Unexpected completion during initialize."
-                            }
+                Button("Start verification") {
+                    trulioo.initialize(shortcode: shortcode) { result in
+                        if case .authorized = result {
+                            isAuthorized = true
                         }
-                    }
-
-                    if let transactionId {
-                        Text("Initialized transaction: \(transactionId)")
-                    }
-
-                    if let errorMessage {
-                        Text(errorMessage)
                     }
                 }
             }
@@ -150,6 +142,8 @@ struct HostedDocsView: View {
 ```
 
 ### UIKit
+
+Initialize first, then present the hosted view controller after the transaction is authorized:
 
 ```swift
 import TruliooKYCDocuments
@@ -162,27 +156,25 @@ final class DocsHostViewController: UIViewController {
         trulioo.initialize(shortcode: shortcode) { [weak self] result in
             guard let self else { return }
 
-            switch result {
-            case .authorized:
-                let controller = self.trulioo.launchController(
-                    callbacks: TruliooCallbacks(
-                        onComplete: { _ in
-                            self.dismiss(animated: true)
-                            self.trulioo.reset()
-                        },
-                        onError: { _ in
-                            self.dismiss(animated: true)
-                            self.trulioo.reset()
-                        }
-                    )
-                )
-                controller.modalPresentationStyle = .fullScreen
-                self.present(controller, animated: true)
-            case .error(let message, _, _, _):
-                print("Initialize failed:", message)
-            case .complete:
-                print("Unexpected completion during initialize.")
+            guard case .authorized = result else {
+                print("Initialize failed:", result)
+                return
             }
+
+            let controller = self.trulioo.launchController(
+                callbacks: TruliooCallbacks(
+                    onComplete: { _ in
+                        self.dismiss(animated: true)
+                        self.trulioo.reset()
+                    },
+                    onError: { _ in
+                        self.dismiss(animated: true)
+                        self.trulioo.reset()
+                    }
+                )
+            )
+            controller.modalPresentationStyle = .fullScreen
+            self.present(controller, animated: true)
         }
     }
 }
@@ -193,9 +185,9 @@ final class DocsHostViewController: UIViewController {
 Main entry points:
 
 - `Trulioo.initialize(shortcode:completion:)`
-  Start or resume the active Docs transaction and authorize the hosted flow.
+  Start or resume the active KYC Documents transaction and authorize the hosted flow.
 - `Trulioo.launch(callbacks:)`
-  Return the hosted Docs SwiftUI view after initialization succeeds.
+  Return the hosted KYC Documents SwiftUI view after initialization succeeds.
 - `Trulioo.launchController(callbacks:)`
   Return a hosted `UIViewController` for UIKit presentation after initialization succeeds.
 - `Trulioo.reset()`
@@ -216,7 +208,7 @@ Main result and callback types:
 
 `initialize(shortcode:completion:)`:
 
-1. authorizes the active Docs transaction from the shortcode
+1. authorizes the active KYC Documents transaction from the shortcode
 2. loads transaction configuration for the hosted flow
 3. prepares the internal Capture-backed UI state
 4. returns `.authorized(transactionId:)` when the flow is ready to launch
@@ -234,11 +226,11 @@ The standard hosted-flow sequence is:
 5. wait for `onComplete` or `onError`
 6. call `reset()`
 
-The host application does not manage camera rendering directly in the Docs SDK. The hosted flow owns that UI internally.
+The host application does not manage camera rendering directly in the KYC Documents SDK. The hosted flow owns that UI internally.
 
 ## Device Send Flow And Debug Wait Flow
 
-The Device Intelligence send and debug wait paths do not apply to the hosted Docs SDK. The hosted flow owns capture, submission, and completion for the active Docs transaction. The host application handles the terminal callback result.
+The Device Intelligence send and debug wait paths do not apply to the hosted KYC Documents SDK. The hosted flow owns capture, submission, and completion for the active KYC Documents transaction. The host application handles the terminal callback result.
 
 ## Caller-Owned Versus SDK-Owned Data
 
@@ -251,14 +243,14 @@ The host application owns:
 
 The SDK owns:
 
-- authorization of the active Docs transaction
+- authorization of the active KYC Documents transaction
 - hosted document and selfie capture UI
 - transaction-scoped selection and capture rules
 - hosted-flow completion and structured error callbacks
 
 ## Polling Defaults
 
-The public iOS Docs contract does not require host-side polling configuration.
+The public iOS KYC Documents contract does not require host-side polling configuration.
 
 Important defaults:
 
@@ -290,20 +282,20 @@ Recommended host behavior:
 
 ## Desktop To Mobile Workflow
 
-The iOS Docs SDK can participate in desktop-to-mobile flows when the transaction is configured for cross-device handoff.
+The iOS KYC Documents SDK can participate in desktop-to-mobile flows when the transaction is configured for cross-device handoff.
 
 In that flow:
 
 - the user starts on desktop
 - the user scans the QR code with a mobile device
-- the mobile device launches the hosted Docs flow
+- the mobile device launches the hosted KYC Documents flow
 - the hosted flow continues the document and selfie steps on iPhone
 
 Desktop-to-mobile behavior is configured through the Trulioo customer transaction, not through a separate iOS SDK flag.
 
 ## Customization
 
-The hosted Docs SDK does not accept direct host-side theme or locale objects through the public iOS launch surface.
+The hosted KYC Documents SDK does not accept direct host-side theme or locale objects through the public iOS launch surface.
 
 These settings come from the transaction configuration associated with the shortcode:
 
@@ -314,7 +306,7 @@ These settings come from the transaction configuration associated with the short
 
 ## Environment And Shortcode Rules
 
-- always initialize with a shortcode created for the active Docs transaction
+- always initialize with a shortcode created for the active KYC Documents transaction
 - do not reuse a stale shortcode after `reset()`
 - shortcode environment is selected by the Trulioo customer handoff flow
 
@@ -323,7 +315,7 @@ These settings come from the transaction configuration associated with the short
 - calling `launch(...)` before `initialize(...)`
 - presenting the hosted controller before initialization returns `.authorized`
 - forgetting to call `reset()` after the flow completes or fails
-- assuming the host app must render Capture cameras directly when using the Docs SDK
+- assuming the host app must render Capture cameras directly when using the KYC Documents SDK
 
 ## Troubleshooting
 
@@ -338,9 +330,9 @@ These settings come from the transaction configuration associated with the short
 
 ## Diagnostic Capture Checklist
 
-When escalating an iOS Docs issue, collect:
+When escalating an iOS KYC Documents issue, collect:
 
-- Docs SDK version
+- KYC Documents SDK version
 - iPhone model and iOS version
 - shortcode environment used for testing
 - returned transaction id when available
