@@ -46,7 +46,7 @@ The published package includes the hosted KYC Documents UI flow for iPhone and r
 
 Host applications must:
 
-- provide a valid KYC Documents shortcode created by the Trulioo customer handoff flow through the [Customer API 3.0 handoff operation](https://docs.verification.trulioo.com/api/customer/3.0/index.html#tag/Transaction/operation/postHandoff)
+- provide a valid KYC Documents shortcode created by the Trulioo customer handoff flow through the [Customer API 3.0 handoff operation](https://developer.trulioo.com/reference/posthandoff)
 - initialize the SDK before launching the hosted UI
 - decide whether to embed the hosted flow through SwiftUI or UIKit
 - handle completion and structured error callbacks
@@ -309,13 +309,6 @@ These settings come from the transaction configuration associated with the short
 - always initialize with a shortcode created for the active KYC Documents transaction
 - do not reuse a stale shortcode after `reset()`
 - shortcode environment is selected by the Trulioo customer handoff flow
-
-## Common Mistakes
-
-- calling `launch(...)` before `initialize(...)`
-- presenting the hosted controller before initialization returns `.authorized`
-- forgetting to call `reset()` after the flow completes or fails
-- assuming the host app must render Capture cameras directly when using the KYC Documents SDK
 
 ## Troubleshooting
 
