@@ -13,15 +13,15 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/Trulioo/kyc-documents-capture.git", exact: "4.0.0-beta.0"),
-        .package(url: "https://github.com/Trulioo/trulioo-ios.git", exact: "4.0.0-beta.0"),
+        .package(url: "https://github.com/Trulioo/kyc-documents-capture.git", exact: "4.0.0"),
+        .package(url: "https://github.com/Trulioo/trulioo-ios.git", exact: "4.0.0"),
         .package(url: "https://github.com/airbnb/lottie-spm.git", exact: "4.5.2"),
     ],
     targets: [
         .binaryTarget(
             name: "TruliooKYCDocuments",
-            url: "https://github.com/Trulioo/kyc-documents/releases/download/4.0.0-beta.0/TruliooKYCDocuments.xcframework.zip",
-            checksum: "1c215a0085332b95b90985596ee8a47493678a57cdc4e0ab342c5e0d14750c95"
+            url: "https://github.com/Trulioo/kyc-documents/releases/download/4.0.0/TruliooKYCDocuments.xcframework.zip",
+            checksum: "a99a23fe4bac1c8b12ae92bd9043ef4a54f93ec4095387a3a05305aec52a01e2"
         ),
         .target(
             name: "TruliooKYCDocumentsDependencies",
