@@ -10,7 +10,7 @@ Use this guide when integrating the hosted Trulioo KYC Documents flow into an iO
 
 This guide covers the public Swift package, initialization, hosted UI launch, callback handling, transaction-owned configuration, and support evidence. For host-owned camera composition, use the Capture iOS guide.
 
-If you are already using the legacy DocV iOS 2.x SDK, read [KYC Documents iOS 3.0 Migration Guide](./trulioo-kyc-documents-ios-migration-3.0.md) before applying the current integration steps in this document.
+If you are already using the legacy DocV iOS 2.x SDK, read [KYC Documents iOS 4.0 Migration Guide](https://developer.trulioo.com/reference/migration-guide-docv-ios-2x-to-kyc-documents-ios) before applying the current integration steps in this document.
 
 ## Quick Summary
 
@@ -46,7 +46,7 @@ The published package includes the hosted KYC Documents UI flow for iPhone and r
 
 Host applications must:
 
-- provide a valid KYC Documents shortcode created by the Trulioo customer handoff flow through the [Customer API 3.0 handoff operation](https://developer.trulioo.com/reference/posthandoff)
+- provide a valid KYC Documents shortcode created by the Trulioo customer handoff flow through the [Customer API 4.0 handoff operation](https://developer.trulioo.com/reference/posthandoff)
 - initialize the SDK before launching the hosted UI
 - decide whether to embed the hosted flow through SwiftUI or UIKit
 - handle completion and structured error callbacks
@@ -93,7 +93,7 @@ Import the module you use:
 import TruliooKYCDocuments
 ```
 
-If your existing integration still uses CocoaPods `TruliooDocV`, `TruliooDelegate`, or `TruliooWorkflow`, use [KYC Documents iOS 3.0 Migration Guide](./trulioo-kyc-documents-ios-migration-3.0.md) to update the distribution and lifecycle contract first.
+If your existing integration still uses CocoaPods `TruliooDocV`, `TruliooDelegate`, or `TruliooWorkflow`, use [KYC Documents iOS 4.0 Migration Guide](https://developer.trulioo.com/reference/migration-guide-docv-ios-2x-to-kyc-documents-ios) to update the distribution and lifecycle contract first.
 
 ## Quick-Start Example
 
